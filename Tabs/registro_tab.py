@@ -135,7 +135,7 @@ def render_tab_registro():
                         st.session_state.form_reset_counter += 1
                         st.cache_data.clear()
                         st.rerun()
-            if cancelar:
-                # Incrementar el contador para sertear el formulario
-                st.session_state.form_reset_counter += 1
-                st.rerun()
+        if cancelar:
+            # Incrementar el contador para sertear el formulario
+            st.session_state.form_reset_counter += 1
+            st.rerun()
