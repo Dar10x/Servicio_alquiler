@@ -73,7 +73,8 @@ def main():
     with tab1:
         render_tab_inventario()
     
-    
+    with tab2:
+        render_tab_registro()
 
 
     # Footer

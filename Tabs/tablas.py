@@ -19,7 +19,7 @@ def mostrar_tabla_inventario():
         return
     
     # Métricas rápidas
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         total_disfraces = len(df_inventario)
@@ -30,10 +30,6 @@ def mostrar_tabla_inventario():
         st.metric("Sin Stock", sin_stock, delta=f"{sin_stock} críticos", delta_color="inverse")
     
     with col3:
-        stock_bajo = len(df_inventario[df_inventario['alerta_stock'] == 'Stock bajo'])
-        st.metric("Stock Bajo", stock_bajo, delta=f"{stock_bajo} advertencias", delta_color="off")
-    
-    with col4:
         total_alquilados = df_inventario['unidades_alquiladas'].sum()
         st.metric("En Alquiler", int(total_alquilados))
     
@@ -43,7 +39,7 @@ def mostrar_tabla_inventario():
     columnas_mostrar = [
         'nombre', 'categoria', 'talla', 'stock_total', 
         'stock_disponible', 'unidades_alquiladas', 
-        'precio_alquiler_dia', 'alerta_stock', 'estado_conservacion'
+        'costo_compra', 'alerta_stock', 'estado_conservacion'
     ]
     
     df_mostrar = df_inventario[columnas_mostrar].copy()
@@ -51,7 +47,7 @@ def mostrar_tabla_inventario():
     # Renombrar columnas PRIMERO
     df_mostrar.columns = [
         'Nombre', 'Categoría', 'Talla', 'Stock Total',
-        'Disponible', 'En Alquiler', 'Precio/Día ($)', 'Estado Stock', 'Conservación'
+        'Disponible', 'En Alquiler', 'Precio de Compra', 'Estado Stock', 'Conservación'
     ]
     
     # Aplicar estilos condicionales usando el nombre de columna RENOMBRADO
