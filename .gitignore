@@ -1,0 +1,23 @@
+# --- Streamlit ---
+# NUNCA subas tus credenciales o claves de API
+.streamlit/secrets.toml
+
+# --- Python ---
+# Archivos compilados y caché
+__pycache__/
+*.py[cod]
+*$py.class
+Tabs/__pycache__/
+
+# --- Entornos Virtuales ---
+# Si creas un entorno virtual (venv, .venv, env), ignóralo aquí
+venv/
+.venv/
+env/
+
+# --- VS Code ---
+# Configuración local del editor (opcional)
+.vscode/
+
+# --- Otros ---
+.DS_Store
