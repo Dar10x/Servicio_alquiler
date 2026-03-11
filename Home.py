@@ -1,10 +1,8 @@
 import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta
-import json
-from typing import Dict,List,Optional, Any
 from Tabs.inventario_tab import render_tab_inventario
 from Tabs.registro_tab import render_tab_registro
+from Tabs.alquiler_tab import render_tab_alquiler
+
 
 st.set_page_config(
     page_title = "Gestion de Inventario Disfraces",
@@ -76,6 +74,8 @@ def main():
     with tab2:
         render_tab_registro()
 
+    with tab3:
+        render_tab_alquiler()
 
     # Footer
     st.divider()

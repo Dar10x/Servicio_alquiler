@@ -32,7 +32,7 @@ def render_tab_registro():
             nombre = st.text_input(
                 "Nombre del Atuendo *",
                 value = "",
-                key=f"input_nombre_{reset_key}",
+                key=f"input_nombre_registro_{reset_key}",
                 help="Nombre descriptivo del disfraz"
             )
 
@@ -40,7 +40,7 @@ def render_tab_registro():
             categoria_nombre = st.selectbox(
                 "Categoria *",
                 options=list(categoria_opciones.keys()),
-                key=f"input_categoria_{reset_key}",
+                key=f"input_categoria_registro_{reset_key}",
                 help="Categoría del disfraz"
             )
 
@@ -49,20 +49,20 @@ def render_tab_registro():
             talla = st.text_input(
                 "Talla *",
                 value="",
-                key=f"input_talla_{reset_key}",
+                key=f"input_talla_registro_{reset_key}",
                 help="Ej: S, M, L, 10, 12, 16, etc."
             )
 
             genero = st.selectbox(
                 "Genero *",
-                key=f"input_genero_{reset_key}",
+                key=f"input_genero_registro_{reset_key}",
                 options=['Unisex','Masculino','Femenino'],
             )
         with col2:
             stock_total = st.number_input(
                 "Cantidad (Stock Comprado) *",
                 min_value=1,
-                key=f"input_stock_{reset_key}",
+                key=f"input_stock_registro_{reset_key}",
                 help="Cantidad de unidades comprados de este traje"
             )
 
@@ -70,27 +70,27 @@ def render_tab_registro():
                 "Precio de Compra *",
                 min_value=0.0,
                 step=0.5,
-                key=f"input_precio_{reset_key}",
+                key=f"input_precio_registro_{reset_key}",
                 help="Precio al momento de comprar el disfraz"
             )
 
             estado_conservacion = st.selectbox(
                 "Estado de Conservacion *",
                 options=['Nuevo', 'Bueno', 'Regular', 'Requiere reparación'],
-                key=f"input_conservacion_{reset_key}",
+                key=f"input_conservacion_registro_{reset_key}",
                 index=0
             )
         descripcion = st.text_area(
             "Descripción",
             height=100,
-            key=f"input_descripcion_{reset_key}",
+            key=f"input_descripcion_registro_{reset_key}",
             help="Descripción detallada del disfraz"
         )
                 
         notas = st.text_area(
             "Notas Adicionales",
             height=60,
-            key=f"input_notas_{reset_key}",
+            key=f"input_notas_registro_{reset_key}",
             help="Observaciones especiales"
         )
 
