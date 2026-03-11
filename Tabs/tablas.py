@@ -91,8 +91,6 @@ def mostrar_alquileres_activos():
         
         return
     
-    
-    
     with col1:
         total_activos = len(df_alquileres)
         st.metric("Alquileres Activos", total_activos)
