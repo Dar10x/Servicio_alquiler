@@ -255,3 +255,38 @@ def insertar_disfraz(datos_disfraz: Dict) -> bool:
         return False
 
 
+def get_ventas_del_mes() -> float:
+    """
+    Retorna la suma total de los montos de alquiler del mes actual.
+    """
+    try:
+        # Obtener el primer y último día del mes actual
+        hoy = datetime.now()
+        primer_dia_mes = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Calcular el último día del mes
+        if hoy.month == 12:
+            ultimo_dia_mes = hoy.replace(year=hoy.year + 1, month=1, day=1, hour=23, minute=59, second=59)
+        else:
+            ultimo_dia_mes = hoy.replace(month=hoy.month + 1, day=1, hour=23, minute=59, second=59)
+        
+        # Consultar alquileres del mes actual
+        response = supabase.table('alquileres').select(
+            'monto_alquiler'
+        ).gte(
+            'created_at', primer_dia_mes.isoformat()
+        ).lte(
+            'created_at', ultimo_dia_mes.isoformat()
+        ).execute()
+        
+        if not response.data:
+            return 0.0
+        
+        # Sumar todos los montos de alquiler
+        total_ventas = sum(alquiler['monto_alquiler'] for alquiler in response.data)
+        
+        return round(total_ventas, 2)
+    
+    except Exception as e:
+        st.error(f"❌ Error al obtener ventas del mes: {str(e)}")
+        return 0.0

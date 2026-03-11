@@ -75,12 +75,23 @@ def mostrar_alquileres_activos():
     
     df_alquileres = db.get_alquileres_activos()
     
-    if df_alquileres.empty:
-        st.success("✅ No hay alquileres activos en este momento")
-        return
-    
     # Métricas
     col1, col2, col3 = st.columns(3)
+
+    if df_alquileres.empty:
+        with col1:
+            total_activos = len(df_alquileres)
+            st.metric("Alquileres Activos", total_activos)
+        
+        with col3:
+            ingresos_del_mes = db.get_ventas_del_mes()
+            st.metric("Ingresos del Mes Actual", f"S/.{ingresos_del_mes:.2f}")
+        st.success("✅ No hay alquileres activos en este momento")
+        
+        
+        return
+    
+    
     
     with col1:
         total_activos = len(df_alquileres)
@@ -91,8 +102,8 @@ def mostrar_alquileres_activos():
         st.metric("Con Demora", con_demora, delta=f"{con_demora} retrasados", delta_color="inverse")
     
     with col3:
-        ingresos_pendientes = df_alquileres['monto_alquiler'].sum()
-        st.metric("Ingresos Activos", f"${ingresos_pendientes:.2f}")
+        ingresos_del_mes = db.get_ventas_del_mes()
+        st.metric("Ingresos del Mes Actual", f"${ingresos_del_mes:.2f}")
     
     st.divider()
     
