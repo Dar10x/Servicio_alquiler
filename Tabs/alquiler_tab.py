@@ -2,9 +2,16 @@ import streamlit as st
 import Tabs.Clientes_functions as cl
 import Tabs.DB_function as db
 from datetime import datetime, timedelta
+import auth
 
 def render_tab_alquiler():
     st.header("Nuevo Alquiler")
+
+    # Verificar permisos
+    if auth.is_viewer():
+        st.warning("⚠️ No tienes permisos para crear alquileres")
+        st.info("👁️ Solo los administradores pueden registrar nuevos alquileres")
+        return
 
     if 'modo_cliente' not in st.session_state:
         st.session_state['modo_cliente'] = 'seleccionar'
@@ -190,101 +197,94 @@ def render_tab_alquiler():
                             st.success(mensaje)
                             st.balloons()
                             
-                            # Incrementar el contador para resetear el formulario
-                            st.session_state.form_reset_counter += 1
-                            
-                            # Seleccionar automáticamente el cliente recién creado
+                            # Seleccionar automáticamente el cliente creado
                             st.session_state['modo_cliente'] = 'seleccionar'
                             st.session_state['cliente_seleccionado_id'] = cliente_creado['id']
                             st.session_state['cliente_datos_temp'] = cliente_creado
                             
+                            # Limpiar formulario incrementando el contador
+                            st.session_state.form_reset_counter += 1
+                            
                             # Limpiar cache
                             st.cache_data.clear()
                             
-                            import time
-                            time.sleep(1)
+                            # Recargar para mostrar cliente seleccionado
                             st.rerun()
-                        
                         else:
-                            # Mostrar error con opción de cargar cliente existente
                             st.error(mensaje)
                             
-                            if cliente_creado:  # Si se encontró un cliente existente
-                                st.markdown("---")
-                                st.markdown("**¿Deseas usar el cliente existente en su lugar?**")
-                                
-                                col_info1, col_info2 = st.columns(2)
-                                
-                                with col_info1:
-                                    st.markdown(f"**Nombre:** {cliente_creado['nombre']} {cliente_creado['apellido']}")
-                                    st.markdown(f"**DNI:** {cliente_creado.get('dni', 'N/A')}")
-                                
-                                with col_info2:
-                                    st.markdown(f"**Teléfono:** {cliente_creado['telefono']}")
-                                    st.markdown(f"**Email:** {cliente_creado.get('email', 'N/A')}")
-                                
-                                if st.form_submit_button("✅ Sí, usar cliente existente", type="primary"):
+                            # Si hay cliente duplicado, ofrecer usarlo
+                            if cliente_creado:
+                                if st.button("✅ Usar este cliente para el alquiler", key="usar_cliente_existente"):
                                     st.session_state['modo_cliente'] = 'seleccionar'
                                     st.session_state['cliente_seleccionado_id'] = cliente_creado['id']
                                     st.session_state['cliente_datos_temp'] = cliente_creado
-                                    st.success(f"✅ Cliente cargado: {cliente_creado['nombre']} {cliente_creado['apellido']}")
                                     st.rerun()
             
             if cancelar_cliente:
-                # Incrementar el contador para resetear el formulario
+                # Incrementar contador para resetear formulario
                 st.session_state.form_reset_counter += 1
                 st.rerun()
 
+    # =============================================
+    # PASO 2: FORMULARIO DE ALQUILER
+    # =============================================
+    
+    st.divider()
+    st.subheader("🎭 Paso 2: Detalles del Alquiler")
+    
+    # Verificar que hay cliente seleccionado
     if st.session_state.get('cliente_seleccionado_id'):
-        st.divider()
-        st.success(f"✅ Cliente seleccionado: {st.session_state['cliente_datos_temp']['nombre']} {st.session_state['cliente_datos_temp']['apellido']}")
+        # Mostrar cliente seleccionado
+        st.success(
+            f"✅ Cliente: {st.session_state['cliente_datos_temp']['nombre']} "
+            f"{st.session_state['cliente_datos_temp']['apellido']} "
+            f"(DNI: {st.session_state['cliente_datos_temp'].get('dni', 'N/A')})"
+        )
         
-        if st.button("🔄 Cambiar Cliente"):
-            st.session_state['cliente_seleccionado_id'] = None
-            st.session_state['cliente_datos_temp'] = {}
-            st.rerun()
-        
-        st.divider()
-        st.subheader("🎭 Paso 2: Datos del Alquiler")
-        
-        # Obtener datos necesarios
+        # Obtener disfraces disponibles
         disfraces = db.get_disfraces_disponibles()
         
         if not disfraces:
-            st.error("❌ No hay disfraces disponibles para alquilar")
-            st.stop()
+            st.warning("⚠️ No hay disfraces disponibles en el inventario")
+            return
         
         # Formulario de alquiler
-        with st.form("form_nuevo_alquiler"):
+        with st.form("form_alquiler"):
+            # Datos del disfraz
             col1, col2 = st.columns(2)
             
             with col1:
-                # Selector de disfraz - SIN PRECIO EN LA DESCRIPCIÓN
-                disfraz_opciones = {
-                    f"{d['nombre']} (Talla: {d['talla']}) - Stock: {d['stock_disponible']}": d['id']
+                # Selectbox de disfraces con formato mejorado
+                disfraces_opciones = {
+                    f"{d['nombre']} - Talla: {d['talla']} - Disponible: {d['stock_disponible']}": d['id']
                     for d in disfraces
                 }
                 
                 disfraz_seleccionado = st.selectbox(
-                    "Disfraz *",
-                    options=list(disfraz_opciones.keys()),
-                    help="Selecciona el disfraz a alquilar"
+                    "Selecciona el Disfraz *",
+                    options=list(disfraces_opciones.keys()),
+                    help="Elige el disfraz a alquilar"
                 )
-                disfraz_id = disfraz_opciones[disfraz_seleccionado]
                 
-                # Obtener datos del disfraz seleccionado
+                disfraz_id = disfraces_opciones[disfraz_seleccionado]
+                
+                # Obtener datos completos del disfraz
                 disfraz_data = next(d for d in disfraces if d['id'] == disfraz_id)
-                
+            
+            with col2:
                 cantidad = st.number_input(
                     "Cantidad *",
                     min_value=1,
                     max_value=disfraz_data['stock_disponible'],
                     value=1,
-                    help=f"Stock disponible: {disfraz_data['stock_disponible']}"
+                    help=f"Máximo disponible: {disfraz_data['stock_disponible']}"
                 )
             
-            with col2:
-                # Fechas
+            # Fechas
+            col2_1, col2_2 = st.columns(2)
+            
+            with col2_1:
                 fecha_salida = st.date_input(
                     "Fecha de Salida *",
                     value=datetime.now().date(),

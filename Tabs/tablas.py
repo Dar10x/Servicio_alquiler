@@ -1,5 +1,7 @@
 import streamlit as st
 import Tabs.DB_function as db
+import auth
+
 try:
     fragment = st.fragment
 except AttributeError:
@@ -88,7 +90,6 @@ def mostrar_alquileres_activos():
             st.metric("Ingresos del Mes Actual", f"S/.{ingresos_del_mes:.2f}")
         st.success("✅ No hay alquileres activos en este momento")
         
-        
         return
     
     with col1:
@@ -128,14 +129,17 @@ def mostrar_alquileres_activos():
                     st.warning(f"⚠️ DEMORA: {dias_demora} día(s) de retraso")
             
             with col_accion:
-                # Botón para marcar como retornado
-                if st.button("✅ Retornar", key=f"retornar_{row['id']}", use_container_width=True):
-                    with st.spinner("Procesando retorno..."):
-                        if db.marcar_como_retornado(row['id']):
-                            st.success("✅ Retorno registrado exitosamente")
-                            st.balloons()
-                            # Limpiar cache para actualizar datos
-                            st.cache_data.clear()
-                            st.rerun()
+                # Botón para marcar como retornado - SOLO ADMIN
+                if auth.is_admin():
+                    if st.button("✅ Retornar", key=f"retornar_{row['id']}", use_container_width=True):
+                        with st.spinner("Procesando retorno..."):
+                            if db.marcar_como_retornado(row['id']):
+                                st.success("✅ Retorno registrado exitosamente")
+                                st.balloons()
+                                # Limpiar cache para actualizar datos
+                                st.cache_data.clear()
+                                st.rerun()
+                else:
+                    st.button("🔒 Retornar", key=f"retornar_{row['id']}", use_container_width=True, disabled=True, help="Solo administradores pueden marcar retornos")
             
             st.divider()

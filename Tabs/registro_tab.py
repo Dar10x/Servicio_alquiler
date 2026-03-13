@@ -1,8 +1,15 @@
 import streamlit as st
 import Tabs.DB_function as db
+import auth
 
 def render_tab_registro():
     st.title("Registro de Disfraz")
+
+    # Verificar permisos
+    if auth.is_viewer():
+        st.warning("⚠️ No tienes permisos para registrar disfraces")
+        st.info("👁️ Solo los administradores pueden agregar nuevos disfraces al inventario")
+        return
 
     st.markdown("""
     Completa el formulario:
@@ -136,6 +143,6 @@ def render_tab_registro():
                         st.cache_data.clear()
                         st.rerun()
         if cancelar:
-            # Incrementar el contador para sertear el formulario
+            # Incrementar el contador para resetear el formulario
             st.session_state.form_reset_counter += 1
             st.rerun()

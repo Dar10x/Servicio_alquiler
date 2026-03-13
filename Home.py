@@ -2,7 +2,7 @@ import streamlit as st
 from Tabs.inventario_tab import render_tab_inventario
 from Tabs.registro_tab import render_tab_registro
 from Tabs.alquiler_tab import render_tab_alquiler
-
+import auth
 
 st.set_page_config(
     page_title = "Gestion de Inventario Disfraces",
@@ -54,6 +54,13 @@ st.markdown("""
 # ================================================
 
 def main():
+    # AUTENTICACIÓN - Proteger toda la aplicación
+    if not auth.require_auth():
+        return  # Si no está autenticado, solo muestra login
+    
+    # Mostrar información del usuario en sidebar
+    auth.mostrar_info_usuario()
+    
     st.markdown("""
     #  Sistema de Inventario de Alquiler de Disfraces
     ### Administracion completa de inventario y alquileres
