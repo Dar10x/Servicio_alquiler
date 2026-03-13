@@ -204,12 +204,7 @@ def mostrar_pagina_login():
                             st.error("❌ Usuario o contraseña incorrectos")
         
         st.divider()
-        st.markdown("""
-            <div style='text-align: center; color: #666; font-size: 12px;'>
-                <p><b>Usuarios de prueba:</b></p>
-                <p>Viewer: viewer / viewer123</p>
-            </div>
-        """, unsafe_allow_html=True)
+        
 
 
 def mostrar_info_usuario():
