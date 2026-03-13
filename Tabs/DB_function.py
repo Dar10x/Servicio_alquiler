@@ -292,81 +292,186 @@ def get_ventas_del_mes() -> float:
 
 
 # ============================================================================
-# FUNCIONES DE SOFT DELETE PARA DISFRACES
+# FUNCIONES DE SOFT DELETE POR CANTIDAD DE STOCK
 # ============================================================================
+# Agregar estas funciones al archivo DB_function.py
+# Reemplazan las funciones anteriores de soft delete
 
-def soft_delete_disfraz(disfraz_id: str) -> tuple[bool, str]:
+def soft_delete_stock_disfraz(disfraz_id: str, cantidad: int) -> tuple[bool, str]:
     """
-    Desactiva un disfraz (soft delete).
-    Solo permite desactivar si NO tiene alquileres activos.
+    Desactiva una cantidad específica de stock de un disfraz.
+    Reduce el stock_total y stock_disponible.
     
     Args:
-        disfraz_id: UUID del disfraz a desactivar
+        disfraz_id: UUID del disfraz
+        cantidad: Cantidad de unidades a desactivar
     
     Returns:
         tuple: (exito: bool, mensaje: str)
     """
     try:
-        # Verificar si tiene alquileres activos
-        response_alquileres = supabase.table('alquileres').select('id').eq(
+        # Obtener información actual del disfraz
+        response = supabase.table('disfraces').select('*').eq('id', disfraz_id).single().execute()
+        
+        if not response.data:
+            return False, "❌ Disfraz no encontrado"
+        
+        disfraz = response.data
+        stock_total_actual = disfraz['stock_total']
+        stock_disponible_actual = disfraz['stock_disponible']
+        
+        # Validaciones
+        if cantidad <= 0:
+            return False, "❌ La cantidad debe ser mayor a 0"
+        
+        if cantidad > stock_disponible_actual:
+            return False, f"❌ No hay suficiente stock disponible. Disponible: {stock_disponible_actual}, Solicitado: {cantidad}"
+        
+        # Verificar alquileres activos
+        unidades_alquiladas = stock_total_actual - stock_disponible_actual
+        
+        if cantidad > stock_disponible_actual:
+            return False, f"❌ No se puede desactivar: {unidades_alquiladas} unidad(es) están actualmente alquiladas"
+        
+        # Calcular nuevos valores
+        nuevo_stock_total = stock_total_actual - cantidad
+        nuevo_stock_disponible = stock_disponible_actual - cantidad
+        
+        # Actualizar el disfraz
+        response_update = supabase.table('disfraces').update({
+            'stock_total': nuevo_stock_total,
+            'stock_disponible': nuevo_stock_disponible,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', disfraz_id).execute()
+        
+        if response_update.data:
+            # Si el stock total llega a 0, marcar como inactivo
+            if nuevo_stock_total == 0:
+                supabase.table('disfraces').update({
+                    'activo': False
+                }).eq('id', disfraz_id).execute()
+                return True, f"✅ {cantidad} unidad(es) desactivada(s). Disfraz marcado como inactivo (stock = 0)"
+            else:
+                return True, f"✅ {cantidad} unidad(es) desactivada(s). Stock restante: {nuevo_stock_total}"
+        else:
+            return False, "❌ Error al actualizar el stock"
+    
+    except Exception as e:
+        return False, f"❌ Error al desactivar stock: {str(e)}"
+
+
+def reactivar_stock_disfraz(disfraz_id: str, cantidad: int) -> tuple[bool, str]:
+    """
+    Reactiva una cantidad específica de stock de un disfraz.
+    Aumenta el stock_total y stock_disponible.
+    
+    Args:
+        disfraz_id: UUID del disfraz
+        cantidad: Cantidad de unidades a reactivar
+    
+    Returns:
+        tuple: (exito: bool, mensaje: str)
+    """
+    try:
+        # Obtener información actual del disfraz
+        response = supabase.table('disfraces').select('*').eq('id', disfraz_id).single().execute()
+        
+        if not response.data:
+            return False, "❌ Disfraz no encontrado"
+        
+        disfraz = response.data
+        stock_total_actual = disfraz['stock_total']
+        stock_disponible_actual = disfraz['stock_disponible']
+        
+        # Validaciones
+        if cantidad <= 0:
+            return False, "❌ La cantidad debe ser mayor a 0"
+        
+        # Calcular nuevos valores
+        nuevo_stock_total = stock_total_actual + cantidad
+        nuevo_stock_disponible = stock_disponible_actual + cantidad
+        
+        # Actualizar el disfraz
+        response_update = supabase.table('disfraces').update({
+            'stock_total': nuevo_stock_total,
+            'stock_disponible': nuevo_stock_disponible,
+            'activo': True,  # Asegurar que esté activo
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', disfraz_id).execute()
+        
+        if response_update.data:
+            return True, f"✅ {cantidad} unidad(es) reactivada(s). Stock total ahora: {nuevo_stock_total}"
+        else:
+            return False, "❌ Error al reactivar el stock"
+    
+    except Exception as e:
+        return False, f"❌ Error al reactivar stock: {str(e)}"
+
+
+def verificar_stock_para_desactivar(disfraz_id: str) -> tuple[bool, str, dict]:
+    """
+    Verifica el stock disponible para desactivar de un disfraz.
+    
+    Args:
+        disfraz_id: UUID del disfraz
+    
+    Returns:
+        tuple: (puede_desactivar: bool, mensaje: str, info: dict)
+    """
+    try:
+        # Obtener info del disfraz
+        response_disfraz = supabase.table('disfraces').select('*').eq('id', disfraz_id).single().execute()
+        
+        if not response_disfraz.data:
+            return False, "❌ Disfraz no encontrado", {}
+        
+        disfraz = response_disfraz.data
+        
+        stock_total = disfraz['stock_total']
+        stock_disponible = disfraz['stock_disponible']
+        unidades_alquiladas = stock_total - stock_disponible
+        
+        # Verificar alquileres activos
+        response_activos = supabase.table('alquileres').select('id, cantidad').eq(
             'disfraz_id', disfraz_id
         ).in_('estado', ['activo', 'reservado']).execute()
         
-        if response_alquileres.data and len(response_alquileres.data) > 0:
-            return False, "❌ No se puede desactivar: El disfraz tiene alquileres activos"
+        alquileres_activos_count = len(response_activos.data) if response_activos.data else 0
         
-        # Desactivar el disfraz
-        response = supabase.table('disfraces').update({
-            'activo': False,
-            'updated_at': datetime.now().isoformat()
-        }).eq('id', disfraz_id).execute()
+        # Contar total de alquileres históricos
+        response_total = supabase.table('alquileres').select('id').eq('disfraz_id', disfraz_id).execute()
+        total_alquileres = len(response_total.data) if response_total.data else 0
         
-        if response.data:
-            return True, "✅ Disfraz desactivado exitosamente"
-        else:
-            return False, "❌ Error al desactivar el disfraz"
+        info = {
+            'nombre': disfraz['nombre'],
+            'stock_total': stock_total,
+            'stock_disponible': stock_disponible,
+            'unidades_alquiladas': unidades_alquiladas,
+            'alquileres_activos_count': alquileres_activos_count,
+            'total_alquileres': total_alquileres,
+            'max_desactivable': stock_disponible
+        }
+        
+        if stock_disponible == 0:
+            return False, f"❌ No hay stock disponible para desactivar (todo está alquilado: {unidades_alquiladas} unidades)", info
+        
+        return True, f"✅ Puedes desactivar hasta {stock_disponible} unidad(es)", info
     
     except Exception as e:
-        return False, f"❌ Error al desactivar disfraz: {str(e)}"
-
-
-def reactivar_disfraz(disfraz_id: str) -> tuple[bool, str]:
-    """
-    Reactiva un disfraz previamente desactivado.
-    
-    Args:
-        disfraz_id: UUID del disfraz a reactivar
-    
-    Returns:
-        tuple: (exito: bool, mensaje: str)
-    """
-    try:
-        response = supabase.table('disfraces').update({
-            'activo': True,
-            'updated_at': datetime.now().isoformat()
-        }).eq('id', disfraz_id).execute()
-        
-        if response.data:
-            return True, "✅ Disfraz reactivado exitosamente"
-        else:
-            return False, "❌ Error al reactivar el disfraz"
-    
-    except Exception as e:
-        return False, f"❌ Error al reactivar disfraz: {str(e)}"
+        return False, f"❌ Error al verificar: {str(e)}", {}
 
 
 @st.cache_data(ttl=30)
-def get_disfraces_inactivos() -> pd.DataFrame:
+def get_disfraces_con_stock() -> pd.DataFrame:
     """
-    Obtiene todos los disfraces desactivados (soft deleted).
+    Obtiene todos los disfraces activos con su información de stock.
+    Incluye disfraces con stock_total > 0.
     
     Returns:
-        DataFrame con disfraces inactivos
+        DataFrame con disfraces activos
     """
     try:
-        response = supabase.table('disfraces').select(
-            'id, nombre, categoria_id, talla, stock_total, stock_disponible, costo_compra, estado_conservacion, created_at'
-        ).eq('activo', False).execute()
+        response = supabase.table('disfraces').select('*').eq('activo', True).gt('stock_total', 0).execute()
         
         if response.data:
             df = pd.DataFrame(response.data)
@@ -382,52 +487,34 @@ def get_disfraces_inactivos() -> pd.DataFrame:
         return pd.DataFrame()
     
     except Exception as e:
-        st.error(f"❌ Error al obtener disfraces inactivos: {str(e)}")
+        st.error(f"❌ Error al obtener disfraces: {str(e)}")
         return pd.DataFrame()
 
 
-def verificar_puede_eliminar_disfraz(disfraz_id: str) -> tuple[bool, str, dict]:
+@st.cache_data(ttl=30)
+def get_disfraces_todos_incluyendo_inactivos() -> pd.DataFrame:
     """
-    Verifica si un disfraz puede ser desactivado.
-    
-    Args:
-        disfraz_id: UUID del disfraz
+    Obtiene TODOS los disfraces (activos e inactivos) para poder reactivar stock.
     
     Returns:
-        tuple: (puede_eliminar: bool, mensaje: str, info: dict)
+        DataFrame con todos los disfraces
     """
     try:
-        # Obtener info del disfraz
-        response_disfraz = supabase.table('disfraces').select('*').eq('id', disfraz_id).single().execute()
+        response = supabase.table('disfraces').select('*').execute()
         
-        if not response_disfraz.data:
-            return False, "❌ Disfraz no encontrado", {}
+        if response.data:
+            df = pd.DataFrame(response.data)
+            
+            # Obtener nombres de categorías
+            if not df.empty and 'categoria_id' in df.columns:
+                categorias = get_categorias()
+                cat_map = {cat['id']: cat['nombre'] for cat in categorias}
+                df['categoria'] = df['categoria_id'].map(cat_map)
+            
+            return df
         
-        disfraz = response_disfraz.data
-        
-        # Verificar alquileres activos
-        response_activos = supabase.table('alquileres').select('id, estado').eq(
-            'disfraz_id', disfraz_id
-        ).in_('estado', ['activo', 'reservado']).execute()
-        
-        alquileres_activos = len(response_activos.data) if response_activos.data else 0
-        
-        # Contar total de alquileres históricos
-        response_total = supabase.table('alquileres').select('id').eq('disfraz_id', disfraz_id).execute()
-        total_alquileres = len(response_total.data) if response_total.data else 0
-        
-        info = {
-            'nombre': disfraz['nombre'],
-            'alquileres_activos': alquileres_activos,
-            'total_alquileres': total_alquileres,
-            'stock_disponible': disfraz['stock_disponible'],
-            'stock_total': disfraz['stock_total']
-        }
-        
-        if alquileres_activos > 0:
-            return False, f"❌ No se puede desactivar: Tiene {alquileres_activos} alquiler(es) activo(s)", info
-        
-        return True, "✅ El disfraz puede ser desactivado", info
+        return pd.DataFrame()
     
     except Exception as e:
-        return False, f"❌ Error al verificar: {str(e)}", {}
+        st.error(f"❌ Error al obtener disfraces: {str(e)}")
+        return pd.DataFrame()
