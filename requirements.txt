@@ -1,4 +1,14 @@
+# Framework principal
 streamlit>=1.28.0
+ 
+# Base de datos Supabase
 supabase>=2.0.0
+ 
+# Análisis de datos
 pandas>=1.4.0,<3.0.0
+ 
+# Variables de entorno
 python-dotenv>=1.0.0
+ 
+# Autenticación y seguridad (NUEVO - para sistema de login)
+bcrypt>=4.0.0
