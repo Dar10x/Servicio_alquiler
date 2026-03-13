@@ -2,6 +2,7 @@ import streamlit as st
 from Tabs.inventario_tab import render_tab_inventario
 from Tabs.registro_tab import render_tab_registro
 from Tabs.alquiler_tab import render_tab_alquiler
+from Tabs.delete_tab import render_tab_gestion_disfraces
 import auth
 
 st.set_page_config(
@@ -69,10 +70,11 @@ def main():
     st.divider()
 
     # Crear los tabs
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
         "Inventario y Alquileres",
         "Registrar Disfraz",
-        "Nuevo Alquiler"
+        "Nuevo Alquiler",
+        "Gestión de Disfraces"
     ])
 
     with tab1:
@@ -83,6 +85,9 @@ def main():
 
     with tab3:
         render_tab_alquiler()
+    
+    with tab4:
+        render_tab_gestion_disfraces()
 
     # Footer
     st.divider()

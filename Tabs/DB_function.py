@@ -32,7 +32,6 @@ def init_connection() -> Client:
 
 
 # Inicializar conexión global
-# Esta variable será importada por otros módulos: from db_connection import supabase
 try:
     supabase = init_connection()
     print("✅ Conexión a Supabase establecida exitosamente")
@@ -42,7 +41,7 @@ except Exception as e:
 
 
 # ============================================================================
-# FUNCIONES AUXILIARES DE BASE DE DATOS (OPCIONAL)
+# FUNCIONES AUXILIARES DE BASE DE DATOS
 # ============================================================================
 
 def test_connection() -> bool:
@@ -290,3 +289,145 @@ def get_ventas_del_mes() -> float:
     except Exception as e:
         st.error(f"❌ Error al obtener ventas del mes: {str(e)}")
         return 0.0
+
+
+# ============================================================================
+# FUNCIONES DE SOFT DELETE PARA DISFRACES
+# ============================================================================
+
+def soft_delete_disfraz(disfraz_id: str) -> tuple[bool, str]:
+    """
+    Desactiva un disfraz (soft delete).
+    Solo permite desactivar si NO tiene alquileres activos.
+    
+    Args:
+        disfraz_id: UUID del disfraz a desactivar
+    
+    Returns:
+        tuple: (exito: bool, mensaje: str)
+    """
+    try:
+        # Verificar si tiene alquileres activos
+        response_alquileres = supabase.table('alquileres').select('id').eq(
+            'disfraz_id', disfraz_id
+        ).in_('estado', ['activo', 'reservado']).execute()
+        
+        if response_alquileres.data and len(response_alquileres.data) > 0:
+            return False, "❌ No se puede desactivar: El disfraz tiene alquileres activos"
+        
+        # Desactivar el disfraz
+        response = supabase.table('disfraces').update({
+            'activo': False,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', disfraz_id).execute()
+        
+        if response.data:
+            return True, "✅ Disfraz desactivado exitosamente"
+        else:
+            return False, "❌ Error al desactivar el disfraz"
+    
+    except Exception as e:
+        return False, f"❌ Error al desactivar disfraz: {str(e)}"
+
+
+def reactivar_disfraz(disfraz_id: str) -> tuple[bool, str]:
+    """
+    Reactiva un disfraz previamente desactivado.
+    
+    Args:
+        disfraz_id: UUID del disfraz a reactivar
+    
+    Returns:
+        tuple: (exito: bool, mensaje: str)
+    """
+    try:
+        response = supabase.table('disfraces').update({
+            'activo': True,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', disfraz_id).execute()
+        
+        if response.data:
+            return True, "✅ Disfraz reactivado exitosamente"
+        else:
+            return False, "❌ Error al reactivar el disfraz"
+    
+    except Exception as e:
+        return False, f"❌ Error al reactivar disfraz: {str(e)}"
+
+
+@st.cache_data(ttl=30)
+def get_disfraces_inactivos() -> pd.DataFrame:
+    """
+    Obtiene todos los disfraces desactivados (soft deleted).
+    
+    Returns:
+        DataFrame con disfraces inactivos
+    """
+    try:
+        response = supabase.table('disfraces').select(
+            'id, nombre, categoria_id, talla, stock_total, stock_disponible, costo_compra, estado_conservacion, created_at'
+        ).eq('activo', False).execute()
+        
+        if response.data:
+            df = pd.DataFrame(response.data)
+            
+            # Obtener nombres de categorías
+            if not df.empty and 'categoria_id' in df.columns:
+                categorias = get_categorias()
+                cat_map = {cat['id']: cat['nombre'] for cat in categorias}
+                df['categoria'] = df['categoria_id'].map(cat_map)
+            
+            return df
+        
+        return pd.DataFrame()
+    
+    except Exception as e:
+        st.error(f"❌ Error al obtener disfraces inactivos: {str(e)}")
+        return pd.DataFrame()
+
+
+def verificar_puede_eliminar_disfraz(disfraz_id: str) -> tuple[bool, str, dict]:
+    """
+    Verifica si un disfraz puede ser desactivado.
+    
+    Args:
+        disfraz_id: UUID del disfraz
+    
+    Returns:
+        tuple: (puede_eliminar: bool, mensaje: str, info: dict)
+    """
+    try:
+        # Obtener info del disfraz
+        response_disfraz = supabase.table('disfraces').select('*').eq('id', disfraz_id).single().execute()
+        
+        if not response_disfraz.data:
+            return False, "❌ Disfraz no encontrado", {}
+        
+        disfraz = response_disfraz.data
+        
+        # Verificar alquileres activos
+        response_activos = supabase.table('alquileres').select('id, estado').eq(
+            'disfraz_id', disfraz_id
+        ).in_('estado', ['activo', 'reservado']).execute()
+        
+        alquileres_activos = len(response_activos.data) if response_activos.data else 0
+        
+        # Contar total de alquileres históricos
+        response_total = supabase.table('alquileres').select('id').eq('disfraz_id', disfraz_id).execute()
+        total_alquileres = len(response_total.data) if response_total.data else 0
+        
+        info = {
+            'nombre': disfraz['nombre'],
+            'alquileres_activos': alquileres_activos,
+            'total_alquileres': total_alquileres,
+            'stock_disponible': disfraz['stock_disponible'],
+            'stock_total': disfraz['stock_total']
+        }
+        
+        if alquileres_activos > 0:
+            return False, f"❌ No se puede desactivar: Tiene {alquileres_activos} alquiler(es) activo(s)", info
+        
+        return True, "✅ El disfraz puede ser desactivado", info
+    
+    except Exception as e:
+        return False, f"❌ Error al verificar: {str(e)}", {}
