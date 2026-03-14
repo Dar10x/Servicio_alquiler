@@ -3,6 +3,7 @@ from Tabs.inventario_tab import render_tab_inventario
 from Tabs.registro_tab import render_tab_registro
 from Tabs.alquiler_tab import render_tab_alquiler
 from Tabs.delete_tab import render_tab_gestion_disfraces
+from Tabs.editar_tab import render_tab_editar_inventario
 import auth
 
 st.set_page_config(
@@ -70,11 +71,12 @@ def main():
     st.divider()
 
     # Crear los tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "Inventario y Alquileres",
         "Registrar Disfraz",
         "Nuevo Alquiler",
-        "Gestión de Disfraces"
+        "Gestión de Disfraces",
+        "Editar Inventario"
     ])
 
     with tab1:
@@ -88,6 +90,9 @@ def main():
     
     with tab4:
         render_tab_gestion_disfraces()
+    
+    with tab5:
+        render_tab_editar_inventario()
 
     # Footer
     st.divider()

@@ -531,3 +531,133 @@ def get_disfraces_todos_incluyendo_inactivos() -> pd.DataFrame:
     except Exception as e:
         st.error(f"❌ Error al obtener disfraces: {str(e)}")
         return pd.DataFrame()
+    
+# =================================================================
+# FUNCIONES DE EDICION
+# =================================================================
+# ============================================================================
+# FUNCIONES PARA EDITAR DISFRACES
+# ============================================================================
+# Agregar estas funciones al archivo DB_function.py
+
+def get_disfraz_por_id(disfraz_id: str) -> Optional[Dict]:
+    """
+    Obtiene información completa de un disfraz por su ID.
+    
+    Args:
+        disfraz_id: UUID del disfraz
+    
+    Returns:
+        Dict con toda la información del disfraz o None si no existe
+    """
+    try:
+        response = supabase.table('disfraces').select('*').eq('id', disfraz_id).single().execute()
+        return response.data if response.data else None
+    except Exception as e:
+        st.error(f"❌ Error al obtener disfraz: {str(e)}")
+        return None
+
+
+def buscar_disfraces_por_nombre(texto_busqueda: str) -> List[Dict]:
+    """
+    Busca disfraces activos por nombre (búsqueda parcial).
+    
+    Args:
+        texto_busqueda: Texto a buscar en el nombre del disfraz
+    
+    Returns:
+        Lista de disfraces que coinciden con la búsqueda
+    """
+    try:
+        if not texto_busqueda or texto_busqueda.strip() == "":
+            # Si no hay búsqueda, retornar todos los disfraces activos
+            response = supabase.table('disfraces').select('*').eq('activo', True).order('nombre').execute()
+        else:
+            # Búsqueda por nombre (case insensitive)
+            response = supabase.table('disfraces').select('*').eq('activo', True).ilike('nombre', f'%{texto_busqueda}%').order('nombre').execute()
+        
+        return response.data if response.data else []
+    
+    except Exception as e:
+        st.error(f"❌ Error al buscar disfraces: {str(e)}")
+        return []
+
+
+def actualizar_disfraz(disfraz_id: str, datos_actualizados: Dict) -> tuple[bool, str]:
+    """
+    Actualiza la información de un disfraz existente.
+    
+    Args:
+        disfraz_id: UUID del disfraz a actualizar
+        datos_actualizados: Diccionario con los campos a actualizar
+    
+    Returns:
+        tuple: (exito: bool, mensaje: str)
+    """
+    try:
+        # Agregar timestamp de actualización
+        datos_actualizados['updated_at'] = datetime.now().isoformat()
+        
+        # Actualizar en la base de datos
+        response = supabase.table('disfraces').update(datos_actualizados).eq('id', disfraz_id).execute()
+        
+        if response.data:
+            return True, "✅ Disfraz actualizado exitosamente"
+        else:
+            return False, "❌ Error al actualizar el disfraz"
+    
+    except Exception as e:
+        return False, f"❌ Error al actualizar disfraz: {str(e)}"
+
+
+def validar_stock_para_edicion(disfraz_id: str, nuevo_stock_total: int) -> tuple[bool, str, int]:
+    """
+    Valida que el nuevo stock_total sea válido considerando las unidades alquiladas.
+    
+    Args:
+        disfraz_id: UUID del disfraz
+        nuevo_stock_total: Nuevo valor de stock_total propuesto
+    
+    Returns:
+        tuple: (es_valido: bool, mensaje: str, unidades_alquiladas: int)
+    """
+    try:
+        # Obtener información actual del disfraz
+        disfraz = get_disfraz_por_id(disfraz_id)
+        
+        if not disfraz:
+            return False, "❌ Disfraz no encontrado", 0
+        
+        stock_actual_total = disfraz['stock_total']
+        stock_disponible = disfraz['stock_disponible']
+        unidades_alquiladas = stock_actual_total - stock_disponible
+        
+        # Validar que el nuevo stock_total no sea menor que las unidades alquiladas
+        if nuevo_stock_total < unidades_alquiladas:
+            return False, f"❌ El stock total no puede ser menor que las unidades alquiladas ({unidades_alquiladas})", unidades_alquiladas
+        
+        # Validar que sea mayor a 0
+        if nuevo_stock_total < 0:
+            return False, "❌ El stock total debe ser mayor o igual a 0", unidades_alquiladas
+        
+        return True, f"✅ Stock válido. Unidades alquiladas: {unidades_alquiladas}", unidades_alquiladas
+    
+    except Exception as e:
+        return False, f"❌ Error al validar stock: {str(e)}", 0
+
+
+@st.cache_data(ttl=30)
+def get_todos_disfraces_activos() -> List[Dict]:
+    """
+    Obtiene todos los disfraces activos sin filtro de stock.
+    Útil para el editor de inventario.
+    
+    Returns:
+        Lista de disfraces activos
+    """
+    try:
+        response = supabase.table('disfraces').select('*').eq('activo', True).order('nombre').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        st.error(f"❌ Error al obtener disfraces: {str(e)}")
+        return []
