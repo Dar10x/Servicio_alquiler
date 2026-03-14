@@ -532,9 +532,6 @@ def get_disfraces_todos_incluyendo_inactivos() -> pd.DataFrame:
         st.error(f"❌ Error al obtener disfraces: {str(e)}")
         return pd.DataFrame()
     
-# =================================================================
-# FUNCIONES DE EDICION
-# =================================================================
 # ============================================================================
 # FUNCIONES PARA EDITAR DISFRACES
 # ============================================================================
