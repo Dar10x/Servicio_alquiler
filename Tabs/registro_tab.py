@@ -44,14 +44,13 @@ def render_tab_registro():
             )
 
             categoria_opciones = {cat['nombre']: cat['id'] for cat in categorias}
-            categoria_nombre = st.selectbox(
+            categoria_nombre = st.text_input(
                 "Categoria *",
-                options=list(categoria_opciones.keys()),
+                value="",
+                placeholder="Ej: Superhéroe, Princesa, Animales, etc.",
                 key=f"input_categoria_registro_{reset_key}",
-                help="Categoría del disfraz"
+                help="Categoría general del disfraz"
             )
-
-            categoria_id = categoria_opciones[categoria_nombre]
 
             talla = st.text_input(
                 "Talla *",
@@ -88,7 +87,7 @@ def render_tab_registro():
                 index=0
             )
         descripcion = st.text_area(
-            "Descripción",
+            "Descripción (Sugerencia: Ingrese el precio de venta y alquiler sugeridos aquí)",
             height=100,
             key=f"input_descripcion_registro_{reset_key}",
             help="Descripción detallada del disfraz"
@@ -117,31 +116,49 @@ def render_tab_registro():
             )
         
         if submit:
-            # Validamos campos requeridos
-            if not nombre or not categoria_id or not talla or not precio_compra:
+            # Validamos campos básicos de texto (sin usar el diccionario todavía)
+            if not nombre or not categoria_nombre or not talla or not precio_compra:
                 st.error("Rellena los campos Obligatorios (*)")
             else:
-                datos_disfraz = {
-                    'nombre': nombre,
-                    'descripcion': descripcion,
-                    'categoria_id': categoria_id,
-                    'talla': talla,
-                    'genero': genero,
-                    'stock_total': stock_total,
-                    'stock_disponible': stock_total,  # Inicialmente todo disponible
-                    'costo_compra': precio_compra,
-                    'estado_conservacion': estado_conservacion,
-                    'notas': notas,
-                    'activo': True
-                }
+                with st.spinner("💾 Procesando..."):
+                    # Lógica de Categoría: Verificar si existe o crearla
+                    # Usamos .get() para evitar el KeyError si es una categoría nueva
+                    categoria_id = categoria_opciones.get(categoria_nombre)
 
-                with st.spinner("💾 Guardando en inventario..."):
+                    if categoria_id is None:
+                        # Si no existe en el diccionario, intentamos insertarla
+                        exito_cat = db.insertar_categoria(categoria_nombre)
+                        if exito_cat:
+                            # Recuperamos el ID recién creado
+                            categoria_id = db.get_categorias(categoria_nombre)[0]['id']
+                        else:
+                            st.error("❌ Error al crear la nueva categoría")
+                            st.stop()
+
+                    # Preparar datos para el disfraz
+                    datos_disfraz = {
+                        'nombre': nombre,
+                        'descripcion': descripcion,
+                        'categoria_id': categoria_id,
+                        'talla': talla,
+                        'genero': genero,
+                        'stock_total': stock_total,
+                        'stock_disponible': stock_total,
+                        'costo_compra': precio_compra,
+                        'estado_conservacion': estado_conservacion,
+                        'notas': notas,
+                        'activo': True
+                    }
+
+                    # Insertar Disfraz
                     if db.insertar_disfraz(datos_disfraz):
-                        st.success(f"✅ Disfraz '{nombre}' agregado exitosamente al inventario")
+                        st.success(f"✅ Disfraz '{nombre}' agregado exitosamente")
                         st.balloons()
                         st.session_state.form_reset_counter += 1
                         st.cache_data.clear()
                         st.rerun()
+                    else:
+                        st.error("❌ Error al guardar el disfraz en la base de datos")
         if cancelar:
             # Incrementar el contador para resetear el formulario
             st.session_state.form_reset_counter += 1

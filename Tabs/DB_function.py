@@ -242,6 +242,19 @@ def crear_alquiler(datos_alquiler: Dict) -> bool:
         st.error(f"❌ Error al crear alquiler: {str(e)}")
         return False
 
+def insertar_categoria(nombre: str) -> bool:
+    """Inserta una nueva categoría en la base de datos"""
+    try:
+        datos_categoria = {
+            'nombre': nombre,
+            'activo': True
+        }
+        response = supabase.table('categorias').insert(datos_categoria).execute()
+        return True
+    
+    except Exception as e:
+        st.error(f"❌ Error al insertar categoría: {str(e)}")
+        return False
 
 def insertar_disfraz(datos_disfraz: Dict) -> bool:
     """Inserta un nuevo disfraz en el inventario"""

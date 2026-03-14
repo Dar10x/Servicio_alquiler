@@ -93,7 +93,7 @@ def main():
     st.divider()
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 20px;'>
-        <p>Sistema de Gestión de Disfraces v1.0 | Powered by Streamlit + Supabase + Google Gemini</p>
+        <p>Sistema de Gestión de Disfraces | Powered by Streamlit + Supabase</p>
     </div>
     """, unsafe_allow_html=True)
 
