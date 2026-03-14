@@ -16,6 +16,5 @@ def render_tab_inventario():
         if st.button("Actualizar Datos", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
-
     else:
         st.info("👁️ Modo solo lectura - No puedes modificar datos")

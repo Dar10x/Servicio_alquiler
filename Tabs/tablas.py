@@ -15,7 +15,7 @@ except AttributeError:
 def mostrar_tabla_inventario():
     st.subheader("Inventario de Disfraces")
     
-    # Inicializar estados de sesión para filtros
+    # Inicializar estados de sesión para filtros 
     if 'filtro_nombre' not in st.session_state:
         st.session_state.filtro_nombre = ""
     
