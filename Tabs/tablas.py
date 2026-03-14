@@ -152,7 +152,7 @@ def mostrar_tabla_inventario():
     
     # Configurar columnas para mostrar
     columnas_mostrar = [
-        'nombre','descripcion', 'categoria', 'talla', 'stock_total', 
+        'nombre','descripcion', 'categoria', 'talla', 'genero', 'stock_total', 
         'stock_disponible', 'unidades_alquiladas', 
         'costo_compra', 'alerta_stock', 'estado_conservacion'
     ]
@@ -161,7 +161,7 @@ def mostrar_tabla_inventario():
     
     # Renombrar columnas
     df_mostrar.columns = [
-        'Nombre', 'Descripción', 'Categoría', 'Talla', 'Stock Total',
+        'Nombre', 'Descripción', 'Categoría', 'Talla', 'Género', 'Stock Total',
         'Disponible', 'En Alquiler', 'Precio de Compra', 'Estado Stock', 'Conservación'
     ]
     
