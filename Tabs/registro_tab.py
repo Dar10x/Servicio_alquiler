@@ -130,7 +130,12 @@ def render_tab_registro():
                         exito_cat = db.insertar_categoria(categoria_nombre)
                         if exito_cat:
                             # Recuperamos el ID recién creado
-                            categoria_id = db.get_categorias(categoria_nombre)[0]['id']
+                            busqueda = db.get_categorias(categoria_nombre)
+                            if busqueda and len(busqueda) > 0:
+                                categoria_id = busqueda[0]['id']
+                            else:
+                                st.error(f"❌ No se encontró la categoría '{categoria_nombre}' tras crearla.")
+                                st.stop()
                         else:
                             st.error("❌ Error al crear la nueva categoría")
                             st.stop()
